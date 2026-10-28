@@ -127,7 +127,7 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
         topBar = {
             Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
                 Row(Modifier.widthIn(max = 720.dp).fillMaxWidth().statusBarsPadding().padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("APPExtractor", fontSize = 21.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1)
+                    Spacer(Modifier.weight(1f))
                     IconButton(colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.primary), onClick = { model.refresh() }, enabled = !state.busy && !state.loading) { Glyph("refresh", "刷新") }
                     IconButton(colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.primary), onClick = { settings = true }) { Glyph("settings", "设置与帮助") }
                 }
@@ -255,7 +255,7 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
                     TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { model.cleanup() }, enabled = !state.busy) { Text("清理") }
                 } }
                 item { SettingText("权限", "仅查询已安装应用。无需联网、存储管理权限、Root 或后台服务。") }
-                item { Text("APPExtractor 1.1.1", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                item { Text("APPExtractor 1.1.2", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } }, confirmButton = { TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { settings = false }) { Text("完成") } }, shape = Corner)
     }
 }

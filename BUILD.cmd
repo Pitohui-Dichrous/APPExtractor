@@ -7,9 +7,9 @@ call gradlew.bat :core:test :app:assembleRelease
 if errorlevel 1 goto failed
 if not exist "app\build\outputs\apk\release\app-release.apk" goto unsigned
 if not exist dist mkdir dist
-copy /y "app\build\outputs\apk\release\app-release.apk" "dist\APPExtractor-1.1.1.apk" >nul
+copy /y "app\build\outputs\apk\release\app-release.apk" "dist\APPExtractor-1.1.2.apk" >nul
 if errorlevel 1 goto failed
-echo APK: %CD%\dist\APPExtractor-1.1.1.apk
+echo APK: %CD%\dist\APPExtractor-1.1.2.apk
 exit /b 0
 :missing_sdk
 echo Set ANDROID_HOME, ANDROID_SDK_ROOT or sdk.dir in local.properties.
