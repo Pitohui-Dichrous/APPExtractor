@@ -1,10 +1,8 @@
 package app.appextractor
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -17,38 +15,25 @@ private val Green = Color(0xFF4C7543)
 
 @Composable
 internal fun ExtractorTheme(content: @Composable () -> Unit) {
-    val colors = if (isSystemInDarkTheme()) darkColorScheme(
-        primary = Gold, onPrimary = Color(0xFF241D12),
-        primaryContainer = Color(0xFF554026), onPrimaryContainer = Color(0xFFF6E6C9),
-        secondary = Color(0xFFB2D0A7), onSecondary = Color(0xFF183211),
-        secondaryContainer = Color(0xFF293D23), onSecondaryContainer = Color(0xFFDCEBD4),
-        tertiary = Gold, onTertiary = Color(0xFF241D12),
-        background = Color(0xFF171713), onBackground = Color(0xFFEDE8DF),
-        surface = Color(0xFF22221C), onSurface = Color(0xFFEDE8DF),
-        surfaceVariant = Color(0xFF39372F), onSurfaceVariant = Color(0xFFC4BDAF),
-        outline = Color(0xFFA69A85), outlineVariant = Color(0xFF514B40),
-        surfaceDim = Color(0xFF171713), surfaceBright = Color(0xFF3C3A32),
-        surfaceContainerLowest = Color(0xFF11110E), surfaceContainerLow = Color(0xFF20201A),
-        surfaceContainer = Color(0xFF25251F), surfaceContainerHigh = Color(0xFF302F28),
-        surfaceContainerHighest = Color(0xFF3A3931),
-        inverseSurface = Color(0xFFEDE8DF), inverseOnSurface = Color(0xFF28251F),
-        inversePrimary = Color(0xFF70552B), error = Color(0xFFFFB3AE),
-    ) else lightColorScheme(
-        primary = Gold, onPrimary = Color(0xFF241D12),
-        primaryContainer = Color(0xFFF0E1C8), onPrimaryContainer = Color(0xFF3B2B15),
-        secondary = Green, onSecondary = Color.White,
-        secondaryContainer = Color(0xFFE5EDDF), onSecondaryContainer = Color(0xFF24401E),
+    // The brand's main color is the canvas; Material primary is the action color.
+    // Keep these roles when the OS switches appearance rather than tinting a black canvas.
+    val colors = lightColorScheme(
+        primary = Green, onPrimary = Color.White,
+        primaryContainer = Color(0xFFE5D0A9), onPrimaryContainer = Color(0xFF28251F),
+        secondary = Color(0xFF433623), onSecondary = Color.White,
+        secondaryContainer = Color(0xFFE5D0A9), onSecondaryContainer = Color(0xFF28251F),
         tertiary = Green, onTertiary = Color.White,
-        background = Color(0xFFF7F4ED), onBackground = Color(0xFF28251F),
-        surface = Color(0xFFFFFCF6), onSurface = Color(0xFF28251F),
-        surfaceVariant = Color(0xFFEBE5D9), onSurfaceVariant = Color(0xFF655E52),
-        outline = Color(0xFF857964), outlineVariant = Color(0xFFD7CEBD),
-        surfaceDim = Color(0xFFE5DED1), surfaceBright = Color(0xFFFFFCF6),
-        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFFBF7EF),
-        surfaceContainer = Color(0xFFF2EDE3), surfaceContainerHigh = Color(0xFFECE6DA),
-        surfaceContainerHighest = Color(0xFFE5DED1),
-        inverseSurface = Color(0xFF302E27), inverseOnSurface = Color(0xFFF7F4ED),
-        inversePrimary = Gold, error = Color(0xFFA3302C),
+        background = Gold, onBackground = Color(0xFF28251F),
+        surface = Color(0xFFDBC398), onSurface = Color(0xFF28251F),
+        surfaceVariant = Color(0xFFF2E4C9), onSurfaceVariant = Color(0xFF433623),
+        outline = Color(0xFF625030), outlineVariant = Color(0xFF917344),
+        surfaceDim = Gold, surfaceBright = Color(0xFFDBC398),
+        surfaceContainerLowest = Gold, surfaceContainerLow = Color(0xFFDBC398),
+        surfaceContainer = Color(0xFFDBC398), surfaceContainerHigh = Color(0xFFDBC398),
+        surfaceContainerHighest = Color(0xFFF2E4C9), surfaceTint = Color(0xFFDBC398),
+        inverseSurface = Green, inverseOnSurface = Color.White,
+        inversePrimary = Color.White, error = Color(0xFF64211C),
+        errorContainer = Color(0xFFEDD0BA), onErrorContainer = Color(0xFF64211C),
     )
     MaterialTheme(
         colorScheme = colors,

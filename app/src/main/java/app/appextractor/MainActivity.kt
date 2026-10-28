@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -52,7 +53,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+        )
+        if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
         setContent {
             ExtractorTheme {
                 val state by model.state.collectAsStateWithLifecycle()
@@ -123,8 +128,8 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
             Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
                 Row(Modifier.widthIn(max = 720.dp).fillMaxWidth().statusBarsPadding().padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("APPExtractor", fontSize = 21.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1)
-                    IconButton(onClick = { model.refresh() }, enabled = !state.busy && !state.loading) { Glyph("refresh", "刷新") }
-                    IconButton(onClick = { settings = true }) { Glyph("settings", "设置与帮助") }
+                    IconButton(colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.primary), onClick = { model.refresh() }, enabled = !state.busy && !state.loading) { Glyph("refresh", "刷新") }
+                    IconButton(colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.primary), onClick = { settings = true }) { Glyph("settings", "设置与帮助") }
                 }
             }
         },
@@ -155,16 +160,16 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
                         value = query, onValueChange = { query = it }, singleLine = true,
                         placeholder = { Text("搜索应用名称或包名") },
                         modifier = Modifier.fillMaxWidth().semantics { contentDescription = "搜索应用" }, shape = Corner,
-                        leadingIcon = { Glyph("search", null) },
-                        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Glyph("close", "清除搜索") } },
+                        leadingIcon = { Glyph("search", null, color = MaterialTheme.colorScheme.primary) },
+                        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Glyph("close", "清除搜索", color = MaterialTheme.colorScheme.primary) } },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface, focusedBorderColor = MaterialTheme.colorScheme.secondary, cursorColor = MaterialTheme.colorScheme.secondary, unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant),
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface, focusedBorderColor = MaterialTheme.colorScheme.primary, cursorColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant),
                     )
                 }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = !system, onClick = { system = false }, label = { Text("用户应用") }, leadingIcon = { if (!system) Glyph("check", null, Modifier.size(18.dp)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primaryContainer, selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer, selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer), shape = Corner)
-                        FilterChip(selected = system, onClick = { system = true }, label = { Text("系统应用") }, leadingIcon = { if (system) Glyph("check", null, Modifier.size(18.dp)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primaryContainer, selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer, selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer), shape = Corner)
+                        FilterChip(selected = !system, onClick = { system = false }, label = { Text("用户应用") }, leadingIcon = { if (!system) Glyph("check", null, Modifier.size(18.dp)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = MaterialTheme.colorScheme.onPrimary, selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary), shape = Corner)
+                        FilterChip(selected = system, onClick = { system = true }, label = { Text("系统应用") }, leadingIcon = { if (system) Glyph("check", null, Modifier.size(18.dp)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = MaterialTheme.colorScheme.onPrimary, selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary), shape = Corner)
                     }
                 }
                 item {
@@ -172,7 +177,7 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (state.loading) "正在读取…" else "${filtered.size} 个应用", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                         Box {
-                            TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { sorting = true }) { Text(listOf("名称", "大小", "最近更新")[sort]); Spacer(Modifier.width(4.dp)); Glyph("sort", null, Modifier.size(18.dp)) }
+                            TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { sorting = true }) { Text(listOf("名称", "大小", "最近更新")[sort]); Spacer(Modifier.width(4.dp)); Glyph("sort", null, Modifier.size(24.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest, Corner).padding(3.dp), color = MaterialTheme.colorScheme.primary) }
                             DropdownMenu(expanded = sorting, onDismissRequest = { sorting = false }) {
                                 listOf("名称", "大小", "最近更新").forEachIndexed { index, title ->
                                     DropdownMenuItem(text = { Text(title) }, onClick = { sort = index; sorting = false }, trailingIcon = { if (sort == index) Glyph("check", null) })
@@ -188,7 +193,7 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
                     }
                 }
                 if (state.loading && state.apps.isEmpty()) item {
-                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(28.dp), color = MaterialTheme.colorScheme.secondary, strokeWidth = 3.dp) }
+                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(28.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 3.dp) }
                 }
                 if (!state.loading && filtered.isEmpty()) item {
                     SurfaceBlock {
@@ -215,7 +220,7 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
         AlertDialog(onDismissRequest = {}, title = { Text(if (state.cancelled) "正在取消…" else "正在提取") },
             text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(state.filename, fontSize = 14.sp)
-                LinearProgressIndicator(color = MaterialTheme.colorScheme.secondary, progress = { if (state.total > 0) (state.done.toDouble() / state.total).toFloat().coerceIn(0f, 1f) else 0f }, modifier = Modifier.fillMaxWidth())
+                LinearProgressIndicator(color = MaterialTheme.colorScheme.primary, progress = { if (state.total > 0) (state.done.toDouble() / state.total).toFloat().coerceIn(0f, 1f) else 0f }, modifier = Modifier.fillMaxWidth())
                 Text("${bytes(state.done)} / ${bytes(state.total)}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             } },
             confirmButton = { TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { model.cancel() }, enabled = !state.cancelled) { Text("取消") } }, shape = Corner)
@@ -236,7 +241,7 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
                 item {
                     SettingText("默认导出文件夹", state.defaultFolderName ?: "每次询问")
                     Column {
-                        TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = chooseFolder, enabled = !state.busy && !state.cleanupPending) {
+                        Button(shape = Corner, onClick = chooseFolder, enabled = !state.busy && !state.cleanupPending) {
                             Glyph("folder", null); Spacer(Modifier.width(8.dp)); Text(if (state.defaultFolderName == null) "选择文件夹" else "更换文件夹")
                         }
                         if (state.defaultFolderName != null) TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { model.clearDefaultFolder() }, enabled = !state.busy && !state.cleanupPending) { Text("每次询问") }
@@ -250,7 +255,7 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
                     TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { model.cleanup() }, enabled = !state.busy) { Text("清理") }
                 } }
                 item { SettingText("权限", "仅查询已安装应用。无需联网、存储管理权限、Root 或后台服务。") }
-                item { Text("APPExtractor 1.1.0", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                item { Text("APPExtractor 1.1.1", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } }, confirmButton = { TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { settings = false }) { Text("完成") } }, shape = Corner)
     }
 }
@@ -283,7 +288,7 @@ private fun AppRow(app: InstalledApp, selecting: Boolean, selected: Boolean, ena
                 Spacer(Modifier.height(4.dp))
                 Text("${app.versionName.ifBlank { app.versionCode.toString() }} · ${bytes(app.sizeBytes)} · ${if (app.split) "APKS" else "APK"}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
-            if (selecting) Checkbox(checked = selected, onCheckedChange = null, enabled = enabled, colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.secondary))
+            if (selecting) Checkbox(checked = selected, onCheckedChange = null, enabled = enabled, colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary))
             else Button(onClick = export, enabled = enabled, shape = Corner, modifier = Modifier.heightIn(min = 48.dp)) { Text("提取") }
         }
     }

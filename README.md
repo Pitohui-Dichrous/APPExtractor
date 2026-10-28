@@ -19,4 +19,4 @@
 
 普通应用导出 APK，分包应用完整导出 APKS，批量提取导出 ZIP。
 
-[下载 APK](https://github.com/Pitohui-Dichrous/APPExtractor/releases/latest/download/APPExtractor-1.1.0.apk) · [使用说明](docs/USAGE.md)
+[下载 APK](https://github.com/Pitohui-Dichrous/APPExtractor/releases/latest/download/APPExtractor-1.1.1.apk) · [使用说明](docs/USAGE.md)

@@ -1,56 +1,38 @@
 [
   {
-    "role": "gold button",
-    "foreground": "#241D12",
-    "background": "#C29E64",
-    "ratio": 6.644
-  },
-  {
-    "role": "light green action",
-    "foreground": "#4C7543",
-    "background": "#FFFCF6",
-    "ratio": 5.214
-  },
-  {
-    "role": "light body",
+    "role": "canvas text",
     "foreground": "#28251F",
-    "background": "#FFFCF6",
-    "ratio": 14.918
+    "background": "#C29E64",
+    "ratio": 6.088
   },
   {
-    "role": "light detail",
-    "foreground": "#655E52",
-    "background": "#FFFCF6",
-    "ratio": 6.259
+    "role": "canvas secondary text",
+    "foreground": "#433623",
+    "background": "#C29E64",
+    "ratio": 4.674
   },
   {
-    "role": "dark green action",
-    "foreground": "#B2D0A7",
-    "background": "#22221C",
-    "ratio": 9.496
+    "role": "card body",
+    "foreground": "#28251F",
+    "background": "#DBC398",
+    "ratio": 8.927
   },
   {
-    "role": "dark body",
-    "foreground": "#EDE8DF",
-    "background": "#22221C",
-    "ratio": 13.101
+    "role": "card action icon",
+    "foreground": "#4C7543",
+    "background": "#DBC398",
+    "ratio": 3.12
   },
   {
-    "role": "dark detail",
-    "foreground": "#C4BDAF",
-    "background": "#22221C",
-    "ratio": 8.561
+    "role": "toolbar action icon",
+    "foreground": "#4C7543",
+    "background": "#F2E4C9",
+    "ratio": 4.25
   },
   {
-    "role": "selected light",
-    "foreground": "#24401E",
-    "background": "#E5EDDF",
-    "ratio": 9.584
-  },
-  {
-    "role": "selected dark",
-    "foreground": "#DCEBD4",
-    "background": "#293D23",
-    "ratio": 9.449
+    "role": "button text",
+    "foreground": "#FFFFFF",
+    "background": "#4C7543",
+    "ratio": 5.34
   }
 ]
