@@ -1,0 +1,17 @@
+.gradle/
+.kotlin/
+.idea/
+.signing/
+.tools/
+.test-data/
+local.properties
+**/build/
+dist/
+*.iml
+*.log
+/base.apk
+__pycache__/
+*.py[cod]
+*.keystore
+*.jks
+*.p12
