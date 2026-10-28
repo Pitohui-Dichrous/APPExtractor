@@ -13,10 +13,10 @@
 
 ## 软件介绍
 
-轻量安卓安装包提取工具，使用 FileFlash 界面设计。支持搜索、筛选和批量提取已安装应用，保留原签名。
+轻量安卓安装包提取工具。支持搜索、筛选和批量提取已安装应用，可设置默认导出文件夹，保留原签名。
 
 无广告、无需联网、无需 Root，自动清理临时缓存。支持 Android 8.0 及以上。
 
 普通应用导出 APK，分包应用完整导出 APKS，批量提取导出 ZIP。
 
-[下载 APK](https://github.com/Pitohui-Dichrous/APPExtractor/releases/latest/download/APPExtractor-1.0.0.apk) · [使用说明](docs/USAGE.md)
+[下载 APK](https://github.com/Pitohui-Dichrous/APPExtractor/releases/latest/download/APPExtractor-1.1.0.apk) · [使用说明](docs/USAGE.md)

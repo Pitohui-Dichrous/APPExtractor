@@ -1,0 +1,56 @@
+[
+  {
+    "role": "gold button",
+    "foreground": "#241D12",
+    "background": "#C29E64",
+    "ratio": 6.644
+  },
+  {
+    "role": "light green action",
+    "foreground": "#4C7543",
+    "background": "#FFFCF6",
+    "ratio": 5.214
+  },
+  {
+    "role": "light body",
+    "foreground": "#28251F",
+    "background": "#FFFCF6",
+    "ratio": 14.918
+  },
+  {
+    "role": "light detail",
+    "foreground": "#655E52",
+    "background": "#FFFCF6",
+    "ratio": 6.259
+  },
+  {
+    "role": "dark green action",
+    "foreground": "#B2D0A7",
+    "background": "#22221C",
+    "ratio": 9.496
+  },
+  {
+    "role": "dark body",
+    "foreground": "#EDE8DF",
+    "background": "#22221C",
+    "ratio": 13.101
+  },
+  {
+    "role": "dark detail",
+    "foreground": "#C4BDAF",
+    "background": "#22221C",
+    "ratio": 8.561
+  },
+  {
+    "role": "selected light",
+    "foreground": "#24401E",
+    "background": "#E5EDDF",
+    "ratio": 9.584
+  },
+  {
+    "role": "selected dark",
+    "foreground": "#DCEBD4",
+    "background": "#293D23",
+    "ratio": 9.449
+  }
+]

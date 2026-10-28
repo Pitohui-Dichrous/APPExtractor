@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/lucide-icons/lucide",
+  "commit": "be09619c1c1124ad09c19fc3e87ee3b939409bbd",
+  "search": "GitHub repository search: lucide icons",
+  "source_url": "https://github.com/lucide-icons/lucide/tree/be09619c1c1124ad09c19fc3e87ee3b939409bbd/icons",
+  "icons": [
+    "refresh-cw",
+    "settings",
+    "search",
+    "x",
+    "check",
+    "arrow-down-wide-narrow",
+    "download",
+    "package",
+    "folder"
+  ]
+}
