@@ -1,9 +1,13 @@
 package app.appextractor
 
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,6 +53,8 @@ import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private val model: ExtractorViewModel by viewModels()
+    private val appearance by lazy { getSharedPreferences("appearance", MODE_PRIVATE) }
+    private var appliedDark: Boolean? = null
     private val save = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         model.destination(if (result.resultCode == RESULT_OK) result.data?.data else null)
     }
@@ -59,20 +67,35 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
+        val initialTheme = ThemeMode.restore(appearance.getString("theme_mode", null))
+        applyWindowTheme(initialTheme.usesDarkTheme(resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES))
         setContent {
-            ExtractorTheme {
+            var themeMode by remember { mutableStateOf(initialTheme) }
+            ExtractorTheme(themeMode) {
                 val dark = LocalAcidColors.current.dark
-                SideEffect {
-                    WindowCompat.getInsetsController(window, window.decorView).apply {
-                        isAppearanceLightStatusBars = !dark
-                        isAppearanceLightNavigationBars = !dark
-                    }
-                }
+                SideEffect { applyWindowTheme(dark) }
                 val state by model.state.collectAsStateWithLifecycle()
-                ExtractorScreen(state, model, ::export, ::chooseFolder)
+                ExtractorScreen(state, model, ::export, ::chooseFolder, themeMode) { mode ->
+                    appearance.edit().putString("theme_mode", mode.name).apply()
+                    themeMode = mode
+                }
             }
+        }
+    }
+
+    private fun applyWindowTheme(dark: Boolean) {
+        if (appliedDark == dark) return
+        appliedDark = dark
+        val transparent = Color.TRANSPARENT
+        enableEdgeToEdge(
+            statusBarStyle = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent),
+            navigationBarStyle = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, Color.BLACK),
+        )
+        if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
+        window.setBackgroundDrawable(ColorDrawable(if (dark) Color.BLACK else Color.rgb(242, 242, 242)))
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = !dark
+            isAppearanceLightNavigationBars = !dark
         }
     }
 
@@ -102,7 +125,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, export: (List<InstalledApp>) -> Unit, chooseFolder: () -> Unit) {
+private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, export: (List<InstalledApp>) -> Unit, chooseFolder: () -> Unit, themeMode: ThemeMode, changeTheme: (ThemeMode) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var system by rememberSaveable { mutableStateOf(false) }
     var sort by rememberSaveable { mutableIntStateOf(0) }
@@ -135,7 +158,7 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
 
     if (settings) {
         BackHandler { settings = false }
-        SettingsScreen(state, model, snackbar, chooseFolder) { settings = false }
+        SettingsScreen(state, model, snackbar, chooseFolder, themeMode, changeTheme) { settings = false }
         return
     }
     val acid = LocalAcidColors.current
@@ -317,7 +340,7 @@ private fun CategoryTab(title: String, number: String, selected: Boolean, modifi
 }
 
 @Composable
-private fun SettingsScreen(state: ExtractorState, model: ExtractorViewModel, snackbar: SnackbarHostState, chooseFolder: () -> Unit, close: () -> Unit) {
+private fun SettingsScreen(state: ExtractorState, model: ExtractorViewModel, snackbar: SnackbarHostState, chooseFolder: () -> Unit, themeMode: ThemeMode, changeTheme: (ThemeMode) -> Unit, close: () -> Unit) {
     val acid = LocalAcidColors.current
     val colors = MaterialTheme.colorScheme
     Scaffold(containerColor = colors.background, snackbarHost = { SnackbarHost(snackbar) }, topBar = {
@@ -330,7 +353,7 @@ private fun SettingsScreen(state: ExtractorState, model: ExtractorViewModel, sna
     }) { insets ->
         Box(Modifier.fillMaxSize().padding(insets), contentAlignment = Alignment.TopCenter) {
             LazyColumn(Modifier.widthIn(max = 720.dp).fillMaxSize(), contentPadding = PaddingValues(bottom = 28.dp)) {
-                item { PageHeading("SETTINGS", "设置与帮助", "V 1.1.3") }
+                item { PageHeading("SETTINGS", "设置与帮助", "V 1.2.0") }
                 item {
                     Column(Modifier.padding(20.dp)) {
                         SectionLabel("01", "导出位置")
@@ -376,8 +399,29 @@ private fun SettingsScreen(state: ExtractorState, model: ExtractorViewModel, sna
                         SettingText("权限", "仅查询已安装应用。无需联网、存储管理权限、Root 或后台服务。")
                         Spacer(Modifier.height(28.dp))
                         HorizontalDivider(color = colors.outline)
-                        Spacer(Modifier.height(12.dp))
-                        Text("APPExtractor / 1.1.3", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                    }
+                }
+                item {
+                    Column(Modifier.padding(20.dp)) {
+                        SectionLabel("04", "外观主题")
+                        Surface(color = colors.surface, border = BorderStroke(1.dp, colors.outline), shape = Corner) {
+                            Column(Modifier.fillMaxWidth().selectableGroup()) {
+                                ThemeMode.entries.forEachIndexed { index, mode ->
+                                    Row(
+                                        Modifier.fillMaxWidth().selectable(selected = mode == themeMode, role = Role.RadioButton, onClick = { changeTheme(mode) })
+                                            .padding(horizontal = 16.dp, vertical = 4.dp).heightIn(min = 48.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    ) {
+                                        RadioButton(selected = mode == themeMode, onClick = null)
+                                        Text(mode.label, style = MaterialTheme.typography.titleSmall)
+                                    }
+                                    if (index < ThemeMode.entries.lastIndex) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = colors.outlineVariant)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(20.dp))
+                        Text("APPExtractor / 1.2.0", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
                     }
                 }
             }

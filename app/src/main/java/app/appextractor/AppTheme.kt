@@ -23,6 +23,20 @@ internal val Corner = RoundedCornerShape(2.dp)
 
 private val AcidLime = Color(0xFFC0FE03)
 
+internal enum class ThemeMode(val label: String) {
+    SYSTEM("跟随系统"), LIGHT("浅色"), DARK("深色");
+
+    fun usesDarkTheme(systemDark: Boolean): Boolean = when (this) {
+        SYSTEM -> systemDark
+        LIGHT -> false
+        DARK -> true
+    }
+
+    companion object {
+        fun restore(value: String?): ThemeMode = entries.firstOrNull { it.name == value } ?: SYSTEM
+    }
+}
+
 /** Brand planes exchange places; neutral content surfaces stay strictly grayscale. */
 @Immutable
 internal data class AcidColors(
@@ -103,8 +117,8 @@ private val AcidTypography = Typography(
 )
 
 @Composable
-internal fun ExtractorTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
+internal fun ExtractorTheme(mode: ThemeMode = ThemeMode.SYSTEM, content: @Composable () -> Unit) {
+    val dark = mode.usesDarkTheme(isSystemInDarkTheme())
     CompositionLocalProvider(LocalAcidColors provides if (dark) DarkAcid else LightAcid) {
         MaterialTheme(
             colorScheme = if (dark) DarkColors else LightColors,
