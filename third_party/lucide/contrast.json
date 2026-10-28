@@ -1,38 +1,74 @@
 [
   {
-    "role": "canvas text",
-    "foreground": "#28251F",
-    "background": "#C29E64",
-    "ratio": 6.088
+    "role": "dark main heading",
+    "foreground": "#C0FE03",
+    "background": "#000000",
+    "ratio": 17.419
   },
   {
-    "role": "canvas secondary text",
-    "foreground": "#433623",
-    "background": "#C29E64",
-    "ratio": 4.674
+    "role": "dark canvas text",
+    "foreground": "#F7F7F7",
+    "background": "#000000",
+    "ratio": 19.602
   },
   {
-    "role": "card body",
-    "foreground": "#28251F",
-    "background": "#DBC398",
-    "ratio": 8.927
+    "role": "dark surface text",
+    "foreground": "#F7F7F7",
+    "background": "#161616",
+    "ratio": 16.892
   },
   {
-    "role": "card action icon",
-    "foreground": "#4C7543",
-    "background": "#DBC398",
-    "ratio": 3.12
+    "role": "dark secondary surface text",
+    "foreground": "#BBBBBB",
+    "background": "#161616",
+    "ratio": 9.426
   },
   {
-    "role": "toolbar action icon",
-    "foreground": "#4C7543",
-    "background": "#F2E4C9",
-    "ratio": 4.25
+    "role": "dark action icon on surface",
+    "foreground": "#C0FE03",
+    "background": "#161616",
+    "ratio": 15.011
   },
   {
-    "role": "button text",
-    "foreground": "#FFFFFF",
-    "background": "#4C7543",
-    "ratio": 5.34
+    "role": "dark action button text and icon",
+    "foreground": "#000000",
+    "background": "#C0FE03",
+    "ratio": 17.419
+  },
+  {
+    "role": "light main heading",
+    "foreground": "#000000",
+    "background": "#C0FE03",
+    "ratio": 17.419
+  },
+  {
+    "role": "light canvas text",
+    "foreground": "#000000",
+    "background": "#F2F2F2",
+    "ratio": 18.758
+  },
+  {
+    "role": "light surface text",
+    "foreground": "#000000",
+    "background": "#FFFFFF",
+    "ratio": 21.0
+  },
+  {
+    "role": "light secondary surface text",
+    "foreground": "#525252",
+    "background": "#FFFFFF",
+    "ratio": 7.814
+  },
+  {
+    "role": "light action icon on surface",
+    "foreground": "#000000",
+    "background": "#FFFFFF",
+    "ratio": 21.0
+  },
+  {
+    "role": "light action button text and icon",
+    "foreground": "#C0FE03",
+    "background": "#000000",
+    "ratio": 17.419
   }
 ]

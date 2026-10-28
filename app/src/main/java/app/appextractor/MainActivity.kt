@@ -4,19 +4,22 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,16 +27,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,13 +59,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
-        )
+        enableEdgeToEdge()
         if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
         setContent {
             ExtractorTheme {
+                val dark = LocalAcidColors.current.dark
+                SideEffect {
+                    WindowCompat.getInsetsController(window, window.decorView).apply {
+                        isAppearanceLightStatusBars = !dark
+                        isAppearanceLightNavigationBars = !dark
+                    }
+                }
                 val state by model.state.collectAsStateWithLifecycle()
                 ExtractorScreen(state, model, ::export, ::chooseFolder)
             }
@@ -102,6 +112,7 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
     var manualCleanup by rememberSaveable { mutableStateOf(false) }
     var confirmSplit by remember { mutableStateOf<List<InstalledApp>?>(null) }
     val snackbar = remember { SnackbarHostState() }
+    val appListState = rememberLazyListState()
     val enabled = !state.busy && !state.cleanupPending
     val toggle: (InstalledApp) -> Unit = { app ->
         selected = if (app.packageName in selected) selected - app.packageName else selected + app.packageName
@@ -122,27 +133,33 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
     LaunchedEffect(state.apps) { selected = selected.filter { pkg -> state.apps.any { it.packageName == pkg } } }
     BackHandler(selecting && !state.exporting) { selecting = false; selected = emptyList() }
 
+    if (settings) {
+        BackHandler { settings = false }
+        SettingsScreen(state, model, snackbar, chooseFolder) { settings = false }
+        return
+    }
+    val acid = LocalAcidColors.current
+    val colors = MaterialTheme.colorScheme
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = colors.background,
         topBar = {
-            Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
-                Row(Modifier.widthIn(max = 720.dp).fillMaxWidth().statusBarsPadding().padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Spacer(Modifier.weight(1f))
-                    IconButton(colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.primary), onClick = { model.refresh() }, enabled = !state.busy && !state.loading) { Glyph("refresh", "刷新") }
-                    IconButton(colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.primary), onClick = { settings = true }) { Glyph("settings", "设置与帮助") }
+            Surface(color = acid.main, contentColor = acid.onMain) {
+                Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("01 / LIBRARY", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                    ToolButton("refresh", "刷新", !state.busy && !state.loading) { model.refresh() }
+                    Spacer(Modifier.width(8.dp))
+                    ToolButton("settings", "设置与帮助", !state.exporting) { settings = true }
                 }
             }
         },
         bottomBar = {
-            if (selecting) {
-                Surface(color = MaterialTheme.colorScheme.surface) {
-                    Box(Modifier.fillMaxWidth().navigationBarsPadding().imePadding(), contentAlignment = Alignment.Center) {
-                        Row(Modifier.widthIn(max = 720.dp).fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { selecting = false; selected = emptyList() }, enabled = !state.busy) { Text("取消") }
-                            Button(onClick = { requestExport(selectedApps) }, enabled = enabled && selectedApps.isNotEmpty(), shape = Corner, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                                Glyph("download", null); Spacer(Modifier.width(8.dp)); Text("提取（${selectedApps.size}）")
-                            }
-                        }
+            if (selecting) Surface(color = colors.surface) {
+                Row(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TextButton(onClick = { selecting = false; selected = emptyList() }, enabled = !state.busy) { Text("取消") }
+                    Button(onClick = { requestExport(selectedApps) }, enabled = enabled && selectedApps.isNotEmpty(), shape = Corner, modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
+                        Glyph("download", null)
+                        Spacer(Modifier.width(10.dp))
+                        Text("提取已选 · ${selectedApps.size}", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -151,56 +168,58 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
     ) { insets ->
         Box(Modifier.fillMaxSize().padding(insets), contentAlignment = Alignment.TopCenter) {
             LazyColumn(
+                state = appListState,
                 modifier = Modifier.widthIn(max = 720.dp).fillMaxSize().imePadding(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
             ) {
-                item {
+                item(key = "hero") { PageHeading("EXTRACT", "应用提取", "APK / APKS / ZIP") }
+                item(key = "search") {
                     OutlinedTextField(
                         value = query, onValueChange = { query = it }, singleLine = true,
-                        placeholder = { Text("搜索应用名称或包名") },
-                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "搜索应用" }, shape = Corner,
-                        leadingIcon = { Glyph("search", null, color = MaterialTheme.colorScheme.primary) },
-                        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Glyph("close", "清除搜索", color = MaterialTheme.colorScheme.primary) } },
+                        placeholder = { Text("搜索名称或包名", style = MaterialTheme.typography.bodyMedium) },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 20.dp).semantics { contentDescription = "搜索应用" }, shape = Corner,
+                        leadingIcon = { Glyph("search", null, color = colors.primary) },
+                        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Glyph("close", "清除搜索", color = colors.primary) } },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface, focusedBorderColor = MaterialTheme.colorScheme.primary, cursorColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = colors.surface, focusedContainerColor = colors.surface, focusedBorderColor = colors.primary, cursorColor = colors.primary, unfocusedBorderColor = colors.outline),
                     )
                 }
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = !system, onClick = { system = false }, label = { Text("用户应用") }, leadingIcon = { if (!system) Glyph("check", null, Modifier.size(18.dp)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = MaterialTheme.colorScheme.onPrimary, selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary), shape = Corner)
-                        FilterChip(selected = system, onClick = { system = true }, label = { Text("系统应用") }, leadingIcon = { if (system) Glyph("check", null, Modifier.size(18.dp)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = MaterialTheme.colorScheme.onPrimary, selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary), shape = Corner)
+                item(key = "filter") {
+                    Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CategoryTab("用户应用", "01", !system, Modifier.weight(1f)) { system = false }
+                        CategoryTab("系统应用", "02", system, Modifier.weight(1f)) { system = true }
                     }
                 }
-                item {
+                item(key = "order") {
                     var sorting by remember { mutableStateOf(false) }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (state.loading) "正在读取…" else "${filtered.size} 个应用", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(if (state.loading) "正在读取…" else "${filtered.size.toString().padStart(2, '0')} 个应用", style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f))
                         Box {
-                            TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { sorting = true }) { Text(listOf("名称", "大小", "最近更新")[sort]); Spacer(Modifier.width(4.dp)); Glyph("sort", null, Modifier.size(24.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest, Corner).padding(3.dp), color = MaterialTheme.colorScheme.primary) }
+                            TextButton(onClick = { sorting = true }) { Text(listOf("名称", "大小", "最近更新")[sort]); Spacer(Modifier.width(4.dp)); Glyph("sort", null, Modifier.size(18.dp)) }
                             DropdownMenu(expanded = sorting, onDismissRequest = { sorting = false }) {
                                 listOf("名称", "大小", "最近更新").forEachIndexed { index, title ->
                                     DropdownMenuItem(text = { Text(title) }, onClick = { sort = index; sorting = false }, trailingIcon = { if (sort == index) Glyph("check", null) })
                                 }
                             }
                         }
-                        TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = {
+                        TextButton(onClick = {
                             if (selecting) selected = if (filtered.isNotEmpty() && filtered.all { it.packageName in selected }) selected - filtered.map { it.packageName }.toSet() else (selected + filtered.map { it.packageName }).distinct()
                             else selecting = true
                         }, enabled = enabled && filtered.isNotEmpty()) {
                             Text(if (selecting) { if (filtered.all { it.packageName in selected }) "取消全选" else "全选" } else "多选")
                         }
                     }
+                    HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = colors.outline)
                 }
                 if (state.loading && state.apps.isEmpty()) item {
-                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(28.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 3.dp) }
+                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(28.dp), color = colors.primary, strokeWidth = 3.dp) }
                 }
                 if (!state.loading && filtered.isEmpty()) item {
-                    SurfaceBlock {
-                        Column(Modifier.fillMaxWidth().padding(vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Glyph("package", null, Modifier.size(36.dp), MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(12.dp)); Text(if (query.isBlank()) "暂无应用" else "未找到应用", fontSize = 15.sp)
-                        }
+                    Column(Modifier.fillMaxWidth().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Glyph("package", null, Modifier.size(40.dp), colors.primary)
+                        Spacer(Modifier.height(16.dp))
+                        Text(if (query.isBlank()) "暂无应用" else "未找到应用", style = MaterialTheme.typography.titleMedium)
                     }
                 }
                 items(filtered, key = { it.packageName }) { app ->
@@ -235,69 +254,181 @@ private fun ExtractorScreen(state: ExtractorState, model: ExtractorViewModel, ex
         text = { Text("请先在文件管理器删除未完成文件。解除记录后，本工具不再自动清理该文件。") },
         confirmButton = { TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { manualCleanup = false; model.forgetUnfinished() }) { Text("已删除，解除记录") } },
         dismissButton = { TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { manualCleanup = false }) { Text("返回") } }, shape = Corner)
-    if (settings) {
-        AlertDialog(onDismissRequest = { settings = false }, title = { Text("设置与帮助") },
-            text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                item {
-                    SettingText("默认导出文件夹", state.defaultFolderName ?: "每次询问")
-                    Column {
-                        Button(shape = Corner, onClick = chooseFolder, enabled = !state.busy && !state.cleanupPending) {
-                            Glyph("folder", null); Spacer(Modifier.width(8.dp)); Text(if (state.defaultFolderName == null) "选择文件夹" else "更换文件夹")
-                        }
-                        if (state.defaultFolderName != null) TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { model.clearDefaultFolder() }, enabled = !state.busy && !state.cleanupPending) { Text("每次询问") }
-                    }
+}
+
+@Composable
+private fun ToolButton(kind: String, description: String, enabled: Boolean = true, action: () -> Unit) {
+    val acid = LocalAcidColors.current
+    FilledIconButton(onClick = action, enabled = enabled, shape = Corner, modifier = Modifier.size(48.dp),
+        colors = IconButtonDefaults.filledIconButtonColors(containerColor = acid.action, contentColor = acid.onAction)) {
+        Glyph(kind, description, Modifier.size(22.dp))
+    }
+}
+
+@Composable
+private fun PageHeading(word: String, title: String, detail: String) {
+    val acid = LocalAcidColors.current
+    Surface(color = acid.main, contentColor = acid.onMain, shape = CutCornerShape(bottomEnd = 24.dp)) {
+        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
+            HorizontalDivider(color = acid.onMain.copy(alpha = 0.45f))
+            BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 4.dp)) {
+                val measurer = rememberTextMeasurer()
+                val style = MaterialTheme.typography.displayLarge
+                val available = with(LocalDensity.current) { maxWidth.roundToPx() }
+                var lower = 12f
+                var upper = (maxWidth.value * 0.255f).coerceAtMost(112f)
+                // Measure the actual font; Android's large-text scaling is not linear.
+                repeat(10) {
+                    val candidate = (lower + upper) / 2
+                    val width = measurer.measure(word, style = style.copy(fontSize = candidate.sp), softWrap = false, maxLines = 1).size.width
+                    if (width <= available) lower = candidate else upper = candidate
                 }
-                item { SettingText("导出格式", "普通应用：APK\n分包应用：APKS（ZIP 内含全部 APK）\n批量提取：ZIP") }
-                item { SettingText("提取范围", "保留安装包原签名，不包含账号、聊天记录和其他应用数据。分包仅包含当前手机上已安装的配置；换设备安装可能不兼容。") }
-                item { SettingText("自动清理", "直接写入保存位置，不生成中间安装包。取消或失败时删除未完成文件；启动时重试清理。你保存的成品会保留。") }
-                item { Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("临时缓存 · ${bytes(state.cacheBytes)}", modifier = Modifier.weight(1f), fontSize = 13.sp)
-                    TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { model.cleanup() }, enabled = !state.busy) { Text("清理") }
-                } }
-                item { SettingText("权限", "仅查询已安装应用。无需联网、存储管理权限、Root 或后台服务。") }
-                item { Text("APPExtractor 1.1.2", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            } }, confirmButton = { TextButton(colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary), onClick = { settings = false }) { Text("完成") } }, shape = Corner)
-    }
-}
-
-@Composable
-private fun SettingText(title: String, detail: String) {
-    Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-    Spacer(Modifier.height(4.dp))
-    Text(detail, fontSize = 13.sp, lineHeight = 21.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-@Composable
-private fun AppRow(app: InstalledApp, selecting: Boolean, selected: Boolean, enabled: Boolean, toggle: () -> Unit, export: () -> Unit) {
-    val context = LocalContext.current
-    val icon by produceState<ImageBitmap?>(null, app.packageName, app.updatedAt) {
-        value = withContext(Dispatchers.IO) { try { AppCatalog(context.applicationContext).loadIcon(app.packageName)?.toBitmap(96, 96)?.asImageBitmap() } catch (_: Exception) { null } }
-    }
-    Card(
-        modifier = Modifier.fillMaxWidth().then(if (selecting) Modifier.toggleable(value = selected, enabled = enabled, role = Role.Checkbox, onValueChange = { toggle() }) else Modifier),
-        shape = Corner,
-        colors = CardDefaults.cardColors(containerColor = if (selecting && selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-    ) {
-        Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (icon != null) Image(icon!!, contentDescription = null, modifier = Modifier.size(44.dp))
-            else Box(Modifier.size(44.dp).background(MaterialTheme.colorScheme.secondaryContainer, Corner), contentAlignment = Alignment.Center) { Glyph("package", null, color = MaterialTheme.colorScheme.primary) }
-            Column(Modifier.weight(1f)) {
-                Text(app.label, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(app.packageName, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(4.dp))
-                Text("${app.versionName.ifBlank { app.versionCode.toString() }} · ${bytes(app.sizeBytes)} · ${if (app.split) "APKS" else "APK"}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(word, style = style, fontSize = lower.sp, lineHeight = (lower * 1.06f).sp, maxLines = 1, softWrap = false)
             }
-            if (selecting) Checkbox(checked = selected, onCheckedChange = null, enabled = enabled, colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary))
-            else Button(onClick = export, enabled = enabled, shape = Corner, modifier = Modifier.heightIn(min = 48.dp)) { Text("提取") }
+            if (LocalDensity.current.fontScale > 1.2f) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(title, style = MaterialTheme.typography.headlineSmall)
+                    Text(detail, style = MaterialTheme.typography.labelSmall)
+                }
+            } else {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                    Text(detail, style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun SurfaceBlock(content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = Corner, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp)) {
-        Column(Modifier.padding(16.dp), content = content)
+private fun CategoryTab(title: String, number: String, selected: Boolean, modifier: Modifier, click: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val largeText = LocalDensity.current.fontScale > 1.2f
+    Surface(onClick = click, selected = selected, modifier = modifier.heightIn(min = 50.dp), shape = Corner,
+        color = if (selected) colors.primary else colors.surface,
+        contentColor = if (selected) colors.onPrimary else colors.onSurfaceVariant,
+        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outline)) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (!largeText) Text(number, style = MaterialTheme.typography.labelSmall)
+            Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            if (selected && !largeText) Glyph("check", null, Modifier.size(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun SettingsScreen(state: ExtractorState, model: ExtractorViewModel, snackbar: SnackbarHostState, chooseFolder: () -> Unit, close: () -> Unit) {
+    val acid = LocalAcidColors.current
+    val colors = MaterialTheme.colorScheme
+    Scaffold(containerColor = colors.background, snackbarHost = { SnackbarHost(snackbar) }, topBar = {
+        Surface(color = acid.main, contentColor = acid.onMain) {
+            Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("02 / PREFERENCES", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                ToolButton("close", "关闭设置", action = close)
+            }
+        }
+    }) { insets ->
+        Box(Modifier.fillMaxSize().padding(insets), contentAlignment = Alignment.TopCenter) {
+            LazyColumn(Modifier.widthIn(max = 720.dp).fillMaxSize(), contentPadding = PaddingValues(bottom = 28.dp)) {
+                item { PageHeading("SETTINGS", "设置与帮助", "V 1.1.3") }
+                item {
+                    Column(Modifier.padding(20.dp)) {
+                        SectionLabel("01", "导出位置")
+                        Surface(color = colors.surface, border = BorderStroke(1.dp, colors.outline), shape = Corner) {
+                            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                                Glyph("folder", null, Modifier.size(28.dp), colors.primary)
+                                Spacer(Modifier.height(16.dp))
+                                Text("默认导出文件夹", style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.height(8.dp))
+                                Text(state.defaultFolderName ?: "每次询问", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                                Spacer(Modifier.height(20.dp))
+                                Button(shape = Corner, onClick = chooseFolder, enabled = !state.busy && !state.cleanupPending, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)) {
+                                    Text(if (state.defaultFolderName == null) "选择文件夹" else "更换文件夹")
+                                }
+                                if (state.defaultFolderName != null) TextButton(onClick = { model.clearDefaultFolder() }, enabled = !state.busy && !state.cleanupPending, modifier = Modifier.fillMaxWidth()) { Text("每次询问") }
+                            }
+                        }
+                    }
+                }
+                item {
+                    Column(Modifier.padding(horizontal = 20.dp)) {
+                        SectionLabel("02", "存储清理")
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(bytes(state.cacheBytes), style = MaterialTheme.typography.displaySmall)
+                                Text("临时缓存", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                            }
+                            OutlinedButton(onClick = { model.cleanup() }, enabled = !state.busy, shape = Corner, modifier = Modifier.heightIn(min = 48.dp), border = BorderStroke(1.dp, colors.primary)) { Text("清理") }
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        Text("直接写入保存位置，不生成中间安装包。取消或失败时删除未完成文件；启动时重试清理。已保存的成品会保留。", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                        Spacer(Modifier.height(24.dp))
+                        HorizontalDivider(color = colors.outlineVariant)
+                    }
+                }
+                item {
+                    Column(Modifier.padding(20.dp)) {
+                        SectionLabel("03", "格式与权限")
+                        SettingText("导出格式", "普通应用：APK\n分包应用：APKS（内含全部 APK）\n批量提取：ZIP")
+                        Spacer(Modifier.height(20.dp))
+                        SettingText("提取范围", "保留安装包原签名，不包含账号、聊天记录和其他应用数据。分包仅包含当前手机已安装的配置；换设备安装可能不兼容。")
+                        Spacer(Modifier.height(20.dp))
+                        SettingText("权限", "仅查询已安装应用。无需联网、存储管理权限、Root 或后台服务。")
+                        Spacer(Modifier.height(28.dp))
+                        HorizontalDivider(color = colors.outline)
+                        Spacer(Modifier.height(12.dp))
+                        Text("APPExtractor / 1.1.3", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionLabel(number: String, text: String) {
+    Row(Modifier.padding(bottom = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(number, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Text(text, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+private fun SettingText(title: String, detail: String) {
+    Text(title, style = MaterialTheme.typography.titleSmall)
+    Spacer(Modifier.height(6.dp))
+    Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun AppRow(app: InstalledApp, selecting: Boolean, selected: Boolean, enabled: Boolean, toggle: () -> Unit, export: () -> Unit) {
+    val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
+    val icon by produceState<ImageBitmap?>(null, app.packageName, app.updatedAt) {
+        value = withContext(Dispatchers.IO) { try { AppCatalog(context.applicationContext).loadIcon(app.packageName)?.toBitmap(96, 96)?.asImageBitmap() } catch (_: Exception) { null } }
+    }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).background(if (selecting && selected) colors.secondaryContainer else colors.background)
+        .then(if (selecting) Modifier.toggleable(value = selected, enabled = enabled, role = Role.Checkbox, onValueChange = { toggle() }) else Modifier)) {
+        Row(Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (icon != null) Image(icon!!, contentDescription = null, modifier = Modifier.size(40.dp))
+            else Box(Modifier.size(40.dp).background(colors.surface, Corner), contentAlignment = Alignment.Center) { Glyph("package", null, color = colors.primary) }
+            Column(Modifier.weight(1f)) {
+                Text(app.label, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(4.dp))
+                Text(app.packageName, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (selecting) Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                Checkbox(checked = selected, onCheckedChange = null, enabled = enabled, colors = CheckboxDefaults.colors(checkedColor = colors.primary, checkmarkColor = colors.onPrimary))
+            } else FilledIconButton(onClick = export, enabled = enabled, shape = Corner, modifier = Modifier.size(width = 48.dp, height = 52.dp)) {
+                Glyph("download", "提取 ${app.label}")
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(if (app.split) "APKS" else "APK", style = MaterialTheme.typography.labelSmall, color = colors.onSurface, modifier = Modifier.border(1.dp, colors.outline, Corner).padding(horizontal = 7.dp, vertical = 3.dp))
+            Text(app.versionName.ifBlank { app.versionCode.toString() }, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(bytes(app.sizeBytes), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+        }
+        HorizontalDivider(color = colors.outlineVariant)
     }
 }
 
