@@ -14,20 +14,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCALES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
-BACKGROUND = (0, 0, 0)
+BACKGROUND = (36, 36, 36)
 LAYER_DP = 108
 SAFE_RADIUS_DP = 33
 MARGIN_DP = 2
 
 
 def subject_radius(image) -> float:
-    """Farthest visible nonblack source pixel, including antialiasing."""
+    """Farthest lime/white subject pixel; dark grayscale artwork is background."""
     radius = 0.0
     pixels = image.load()
     for y in range(image.height):
         for x in range(image.width):
             r, g, b, alpha = pixels[x, y]
-            if alpha and max(r, g, b):
+            if alpha and ((g > r + 8 and g > b + 8) or (min(r, g, b) > 128 and max(r, g, b) - min(r, g, b) < 24)):
                 radius = max(radius, math.hypot(x + 0.5 - image.width / 2, y + 0.5 - image.height / 2))
     return radius
 
@@ -49,8 +49,8 @@ def prepare(source: Path, preview: bool = False, preview_dir: Path | None = None
 
     source_radius = subject_radius(artwork)
     if not source_radius:
-        raise ValueError("The supplied image has no visible nonblack artwork")
-    # The complete nonblack subject fits the guaranteed 66dp circular safe zone.
+        raise ValueError("The supplied image has no visible lime/white subject")
+    # The complete lime/white subject fits the guaranteed 66dp circular safe zone.
     # Round down to an even size so every density centers on whole pixels.
     artwork_dp = math.floor(min(LAYER_DP, (SAFE_RADIUS_DP - MARGIN_DP) * artwork.width / source_radius) / 2) * 2
     if artwork_dp < 2:
@@ -66,7 +66,7 @@ def prepare(source: Path, preview: bool = False, preview_dir: Path | None = None
         offset = (canvas_size - artwork_size) // 2
         foreground.alpha_composite(resized, (offset, offset))
         radius = subject_radius(foreground) / scale
-        assert radius < SAFE_RADIUS_DP, f"{density}: nonblack pixels must stay inside the safe circle"
+        assert radius < SAFE_RADIUS_DP, f"{density}: lime/white subject must stay inside the safe circle"
         target = resources / ("mipmap-" + density) / "ic_launcher_artwork.png"
         target.parent.mkdir(parents=True, exist_ok=True)
         foreground.save(target, optimize=True)
@@ -76,7 +76,7 @@ def prepare(source: Path, preview: bool = False, preview_dir: Path | None = None
         print(f"{target.relative_to(ROOT)}: {canvas_size}x{canvas_size}")
 
     if preview:
-        output_dir = preview_dir or ROOT / ".test-data" / "qa" / "v1.2.0"
+        output_dir = preview_dir or ROOT / ".test-data" / "qa" / "v1.2.1"
         output_dir.mkdir(parents=True, exist_ok=True)
         # Preview the normal 72dp visible mask, without changing source artwork.
         visible_size = 576
@@ -101,7 +101,8 @@ def prepare(source: Path, preview: bool = False, preview_dir: Path | None = None
         report = {"sourceSha256": hashlib.sha256(source_bytes).hexdigest(), "sourceSize": list(artwork.size),
                   "sourceSubjectRadiusPixels": source_radius, "artworkDp": artwork_dp,
                   "safeCircleDiameterDp": SAFE_RADIUS_DP * 2, "sourceCopiedExactly": True,
-                  "wholeImageUniformlyScaled": True, "densityChecks": checks}
+                  "wholeImageUniformlyScaled": True, "backgroundColor": "#242424",
+                  "criticalSubject": "lime and white; grayscale decoration remains in the whole image", "densityChecks": checks}
         (output_dir / "icon-verification.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
         print(output_dir)
 

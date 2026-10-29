@@ -353,7 +353,7 @@ private fun SettingsScreen(state: ExtractorState, model: ExtractorViewModel, sna
     }) { insets ->
         Box(Modifier.fillMaxSize().padding(insets), contentAlignment = Alignment.TopCenter) {
             LazyColumn(Modifier.widthIn(max = 720.dp).fillMaxSize(), contentPadding = PaddingValues(bottom = 28.dp)) {
-                item { PageHeading("SETTINGS", "设置与帮助", "V 1.2.0") }
+                item { PageHeading("SETTINGS", "设置与帮助", "V 1.2.1") }
                 item {
                     Column(Modifier.padding(20.dp)) {
                         SectionLabel("01", "导出位置")
@@ -421,7 +421,7 @@ private fun SettingsScreen(state: ExtractorState, model: ExtractorViewModel, sna
                             }
                         }
                         Spacer(Modifier.height(20.dp))
-                        Text("APPExtractor / 1.2.0", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                        Text("APPExtractor / 1.2.1", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
                     }
                 }
             }
