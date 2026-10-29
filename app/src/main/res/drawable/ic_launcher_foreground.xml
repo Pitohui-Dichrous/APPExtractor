@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:src="@mipmap/ic_launcher_artwork"
-    android:gravity="fill"
-    android:filter="true" />
+<!-- Compensate Android's 150% overscan: the original fills the visible icon square. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:inset="16.666667%">
+    <bitmap
+        android:src="@drawable/ic_launcher_artwork"
+        android:gravity="fill"
+        android:filter="true" />
+</inset>
